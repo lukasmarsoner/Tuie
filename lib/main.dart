@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:tuieno/events.dart';
 
@@ -23,6 +21,7 @@ void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   EventRegistry eventRegistry = new EventRegistry();
+  EventItemListState eventItemList = new EventItemListState();
 
   //We can provide the events here for testing - later these will be loaded
   MyApp({this.eventRegistry}){
@@ -51,7 +50,8 @@ class MyApp extends StatelessWidget {
                   return new Row(children: <Widget>[Text('Nothing here...')],);
                   }
                 else{
-                    return EventItemList(event.data);
+                    eventItemList.updateEventList(event.data);
+                    return eventItemList.build(context);
                 }
             }
           },
@@ -61,35 +61,35 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class EventItemList extends StatelessWidget{
-  List<ListItem> eventItems = new List<ListItem>();
-  Map<int,Event> eventMap;
+class EventItemList extends StatefulWidget{
+  @override
+  EventItemListState createState() => new EventItemListState();
+}
 
-  EventItemList(this.eventMap);
+class EventItemListState extends State<EventItemList>{
+  Map<int,Widget> eventItems = Map<int,Widget>();
 
-  getEventItems(){
-    for(int key in eventMap.keys){
-      eventItems.add(ListItem(eventMap[key], key));
+  void updateEventList(Map<int,Event> newEvents){
+    for(int key in newEvents.keys){
+      //Add or update entries
+      eventItems[key] = ListItem(newEvents[key]);
     }
   }
 
   @override
   Widget build(BuildContext context){
-    getEventItems();
-    return ListView(children: eventItems);
+    return ListView(children: eventItems.values.toList());
   }
 }
 
 class ListItem extends StatelessWidget{
-  Event event;
-  int index;
+  final Event event;
 
-  ListItem(this.event, this.index);
+  ListItem(this.event);
 
   @override
   Widget build(BuildContext context){
     return Row(
-      key: Key(index.toString()),
       children: <Widget>[
       Text(event.name)
     ]);

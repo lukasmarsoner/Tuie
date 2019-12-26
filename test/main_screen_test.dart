@@ -30,5 +30,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ListItem), findsNWidgets(nTestEvents+1));
+
+    //Update an event
+    _registry.newEventName(iEvent: 0, newName: 'New Name');
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('New Name'), findsNWidgets(1));
   });
 }
