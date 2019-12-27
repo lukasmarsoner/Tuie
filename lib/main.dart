@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tuieno/events.dart';
+import 'events.dart';
 
 //Only used for testing
 Map<String,dynamic> _testIO = {
@@ -16,15 +17,15 @@ Event _getTestEvent({String name, DateTime due, Duration duration}){
   return _event;
 }
 //Only used for testing
-
-void main() => runApp(MyApp());
+void main() => runApp(MyApp(eventRegistry: new EventRegistry()));
 
 class MyApp extends StatelessWidget {
-  EventRegistry eventRegistry = new EventRegistry();
-  EventItemListState eventItemList = new EventItemListState();
+  final EventRegistry eventRegistry;
+  final EventItemListState eventItemList = new EventItemListState();
 
   //We can provide the events here for testing - later these will be loaded
   MyApp({this.eventRegistry}){
+    eventItemList.eventRegistry = eventRegistry;
     //For testing => add a few test events
     //for(int i=0; i<10; i++){
     //  eventRegistry.registerEvent(_getTestEvent());
@@ -38,14 +39,11 @@ class MyApp extends StatelessWidget {
       home: new Scaffold(
         body: new StreamBuilder(
           stream: eventRegistry.eventStream(),
-          builder: (BuildContext context, AsyncSnapshot<Map<int,Event>> event){
+          builder: (BuildContext context, AsyncSnapshot<List<int>> event){
             switch (event.connectionState) {
               case ConnectionState.waiting:
                 return const Text('Loading...');
               default:
-                if (event.hasError) {
-                  return Text('Error: ${event.error}');
-                  }
                 if (event.data.isEmpty) {
                   return new Row(children: <Widget>[Text('Nothing here...')],);
                   }
@@ -68,11 +66,12 @@ class EventItemList extends StatefulWidget{
 
 class EventItemListState extends State<EventItemList>{
   Map<int,Widget> eventItems = Map<int,Widget>();
+  EventRegistry eventRegistry;
 
-  void updateEventList(Map<int,Event> newEvents){
-    for(int key in newEvents.keys){
+  void updateEventList(List<int> newEvents){
+    for(int iEvent in newEvents){
       //Add or update entries
-      eventItems[key] = ListItem(newEvents[key]);
+      eventItems[iEvent] = ListItem(iEvent: iEvent, eventRegistry: eventRegistry);
     }
   }
 
@@ -83,15 +82,45 @@ class EventItemListState extends State<EventItemList>{
 }
 
 class ListItem extends StatelessWidget{
-  final Event event;
+  final int iEvent;
+  final EventRegistry eventRegistry;
 
-  ListItem(this.event);
+  ListItem({this.iEvent, this.eventRegistry});
 
   @override
   Widget build(BuildContext context){
-    return Row(
-      children: <Widget>[
-      Text(event.name)
-    ]);
+    //Show up-to 6 items on screen on phones
+    //TODO: Add support for PCs
+
+    int nItemsOnScreen = 6;
+
+    double _widgetHeigt = MediaQuery.of(context).size.height / nItemsOnScreen;
+    double _iconHeight = _widgetHeigt * 4/10;
+    return Dismissible(
+      key: Key(iEvent.toString()),
+      child: Container(
+        color: Colors.red.withAlpha(eventRegistry.getCompletionPercentage(iEvent)),
+        height: _widgetHeigt,
+        child: Container(
+          alignment: Alignment.center,
+          child: ListTile(
+            leading: Icon(Icons.android, size: _widgetHeigt/3),
+            title: Text(eventRegistry.getEventName(iEvent))
+          )
+        )
+      ),
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.only(left: _iconHeight/4),
+        color: Colors.green, 
+        child: Icon(Icons.check_circle_outline, size: _iconHeight)
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: EdgeInsets.only(right: _iconHeight/4),
+        color: Colors.yellow, 
+        child: Icon(Icons.delete_outline, size: _iconHeight)
+      ),
+    );
   }
 }

@@ -19,11 +19,25 @@ void main() {
 
     expect(_event.due, _newDueDate);
 
+    //Test that minimum duration is 15 minutes
+    _event.duration = Duration(seconds: 0);
+    expect(_event.duration, Duration(minutes: 15));
+
     _event.name = 'New Name';
     expect(_event.name, 'New Name');
 
     _event.due = _newDueDate;
     expect(_event.due, _newDueDate);
+
+    //Get completion percentage
+    _event.due = DateTime.now();
+    _event.shiftDueDate(Duration(minutes: 15));
+    _event.duration = Duration(minutes: 15);
+    expect(_event.getCompletionPercentage(now: DateTime.now()), 255);
+
+    //Test event already completed
+    _event.duration = Duration(minutes: 30);
+    expect(_event.getCompletionPercentage(now: _event.due), 255);
   });
 
   test('Basic Event-Registry tests', () async {
@@ -31,7 +45,9 @@ void main() {
 
     //Register a new Event
     _registry.registerEvent(_event);
-    expect(_registry.event(0), _event);
+    expect(_registry.getEventName(0), _event.name);
+    expect(_registry.getEventDueDate(0), _event.due);
+    expect(_registry.getCompletionPercentage(0, now: DateTime.now()), _event.getCompletionPercentage(now: DateTime.now()));
 
     //See if we can yield regular events
     _registry.eventStream().listen((_streamEvent) => expect(_streamEvent.isNotEmpty, true));
