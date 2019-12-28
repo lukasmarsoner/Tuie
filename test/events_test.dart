@@ -38,11 +38,13 @@ void main() {
     _event.due = DateTime.now();
     _event.shiftDueDate(Duration(minutes: 15));
     _event.duration = Duration(minutes: 15);
-    expect(_event.getCompletionPercentage(DateTime.now()), 255);
+    _event.calculateCompletionProgress(DateTime.now());
+    expect(_event.completionProgress, 255);
 
     //Test event already completed
     _event.duration = Duration(minutes: 30);
-    expect(_event.getCompletionPercentage(_event.due), 255);
+    _event.calculateCompletionProgress(_event.due);
+    expect(_event.completionProgress, 255);
   });
 
   test('Basic Event-Registry tests', () async {
@@ -52,10 +54,15 @@ void main() {
     _registry.registerEvent(_event);
     expect(_registry.getEventName(0), _event.name);
     expect(_registry.getEventDueDate(0), _event.due);
-    expect(_registry.getCompletionPercentage(0, now: DateTime.now()), _event.getCompletionPercentage(DateTime.now()));
+    _event.calculateCompletionProgress(DateTime.now());
+    expect(_registry.getEventCompletionProgress(0, now: DateTime.now()), _event.completionProgress);
+
+    //Register some more events for testing
+    for(int i=0; i< 10; i++){_registry.registerEvent(getTestEvent());}
 
     //See if we can yield regular events
     _registry.eventStream().listen((_streamEvent) => expect(_streamEvent.isNotEmpty, true));
+    int nEvents = _registry.nEvents;
 
     //Add a new event to the registry
     DateTime _dueDate = new DateTime.now();
@@ -65,16 +72,33 @@ void main() {
     _registry.newEventName(iEvent: 0, newName: 'Test');
     _registry.newEventDuration(iEvent: 0, newDuration: Duration(days: 1));
     _registry.newEventIcon(iEvent: 0, newIcon: acUnit);
-    expect(_registry.getEventCompletionStatus(1), false);
-    _registry.updateEventCompletionStatus(iEvent: 1, newStatus: true);
 
-    expect(_registry.getEventCompletionStatus(1), true);
+    nEvents = _registry.nEvents;
+    expect(_registry.getEventCompletionStatus(nEvents-1), false);
+    _registry.setEventToCompleted(iEvent: nEvents-1);
+    expect(_registry.getEventCompletionStatus(nEvents-1), true);
+
     expect(_registry.getEventIcon(0), acUnit);
     expect(_registry.getEventDueDate(0), _dueDate);
     expect(_registry.getEventName(0), 'Test');
 
-    int nEvents = _registry.nEvents;
+    nEvents = _registry.nEvents;
     _registry.deleteEvent(0);
     expect(_registry.nEvents, nEvents - 1);
+
+    _registry.updateCompletionProgressDataOnOpenTasks();
+    //Set some different durations on events to test sorting
+    //Default is 30 minutes
+    _registry.newEventDuration(iEvent: 5, newDuration: Duration(hours: 1));
+    _registry.newEventDuration(iEvent: 8, newDuration: Duration(hours: 2));
+    _registry.newEventDuration(iEvent: 2, newDuration: Duration(minutes: 15));
+    expect(_registry.getEventCompletionProgress(5), isPositive);
+
+    //Check if dorting by completion progress works
+    nEvents = _registry.nEvents;
+    List<int> _sortedEventIndexes = _registry.getEventsOrderedByCompletionProgress(now: DateTime.now());
+    expect(_sortedEventIndexes[0], 8);
+    expect(_sortedEventIndexes[1], 5);
+    expect(_sortedEventIndexes[nEvents-1], 2);
   });
 }

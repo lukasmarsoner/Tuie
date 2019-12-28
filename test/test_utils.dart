@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 Map<String,dynamic> testIO = {
   'name': 'Test Name',
-  'due': new DateTime.now().add(new Duration(days: 2)),
-  'duration': new Duration(hours: 10),
+  'due': new DateTime.now().add(new Duration(hours: 20)),
+  'duration': new Duration(minutes: 30),
   'icon': Icons.account_box,
 };
 

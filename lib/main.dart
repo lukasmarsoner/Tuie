@@ -29,9 +29,9 @@ class MyApp extends StatelessWidget {
   MyApp({this.eventRegistry}){
     eventItemList.eventRegistry = eventRegistry;
     //For testing => add a few test events
-    for(int i=0; i<10; i++){
-      eventRegistry.registerEvent(_getTestEvent());
-    }
+    //for(int i=0; i<10; i++){
+    //  eventRegistry.registerEvent(_getTestEvent());
+    //}
     }
 
   @override
@@ -73,26 +73,40 @@ class EventItemListState extends State<EventItemList>{
   void updateEventList(Map<int, bool>newEvents){
     for(int iEvent in newEvents.keys){
       //Add or update entries
-      //Negative indexes are used for deletion
       newEvents[iEvent]
       ?eventItems.keys.contains(iEvent)
         ?eventItems.remove(iEvent)
         :throw new Exception('Invalid index!')
-      :eventItems[iEvent] = ListItem(iEvent: iEvent, eventRegistry: eventRegistry);
+      :eventItems[iEvent] = EventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
     }
+  }
+
+  //Sorts the list of event items by their completion progress
+  List<EventListItem> sortEventListByCompletionProgress(){
+    List<EventListItem> _sortedEvents = new List<EventListItem>();
+    for(int iItem in eventRegistry.getEventsOrderedByCompletionProgress(now: DateTime.now())){
+      _sortedEvents.add(eventItems[iItem]);
+    }
+    return _sortedEvents;
   }
 
   @override
   Widget build(BuildContext context){
-    return ListView(children: eventItems.values.toList());
+    return ListView(children: sortEventListByCompletionProgress());
   }
 }
 
-class ListItem extends StatelessWidget{
+class EventListItem extends StatelessWidget{
   final int iEvent;
   final EventRegistry eventRegistry;
 
-  ListItem({this.iEvent, this.eventRegistry});
+  EventListItem({this.iEvent, this.eventRegistry});
+
+  //Used for testing
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.debug}) {
+    return iEvent.toString();
+  }
 
   @override
   Widget build(BuildContext context){
@@ -108,13 +122,11 @@ class ListItem extends StatelessWidget{
       onDismissed: (direction) {
           direction == DismissDirection.startToEnd
           ?eventRegistry.deleteEvent(iEvent)
-          :eventRegistry.updateEventCompletionStatus(iEvent: iEvent, newStatus: true);
+          :eventRegistry.setEventToCompleted(iEvent: iEvent);
         },
       key: Key(iEvent.toString()),
       child: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.black)),
-          color: Colors.red.withAlpha(eventRegistry.getCompletionPercentage(iEvent))),
+        color: Colors.red.withAlpha(eventRegistry.getEventCompletionProgress(iEvent)),
         height: _widgetHeigt,
         child: Container(
           alignment: Alignment.center,
