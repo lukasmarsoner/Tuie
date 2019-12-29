@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tuieno/events.dart';
 import 'test_utils.dart';
+import 'dart:async';
 
 EventRegistry _registry = new EventRegistry();
 IconData acUnit = Icons.ac_unit;
 
-
 void main() {
   test('Basic Event-tests', () async {
-
     //Test creating a new Event
     Event _event = getTestEvent();
 
@@ -61,7 +60,7 @@ void main() {
     for(int i=0; i< 10; i++){_registry.registerEvent(getTestEvent());}
 
     //See if we can yield regular events
-    _registry.eventStream().listen((_streamEvent) => expect(_streamEvent.isNotEmpty, true));
+    StreamSubscription _eventStreamSubscription = _registry.eventStream().listen((_streamEvent) => expect(_streamEvent.isNotEmpty, true));
     int nEvents = _registry.nEvents;
 
     //Add a new event to the registry
@@ -77,6 +76,10 @@ void main() {
     expect(_registry.getEventCompletionStatus(nEvents-1), false);
     _registry.setEventToCompleted(iEvent: nEvents-1);
     expect(_registry.getEventCompletionStatus(nEvents-1), true);
+    _registry.setEventToCompleted(iEvent: nEvents-2);
+    expect(_registry.getEventCompletionStatus(nEvents-2), true);
+    expect(_registry.getEventCompletionDate(nEvents-1).hour, DateTime.now().hour);
+    expect(_registry.getEventsSortedByCompletionDate(), [nEvents-2, nEvents-1]);
 
     expect(_registry.getEventIcon(0), acUnit);
     expect(_registry.getEventDueDate(0), _dueDate);
@@ -85,13 +88,12 @@ void main() {
     nEvents = _registry.nEvents;
     _registry.deleteEvent(0);
     expect(_registry.nEvents, nEvents - 1);
-
+    
     _registry.updateCompletionProgressDataOnOpenTasks();
     //Set some different durations on events to test sorting
     //Default is 30 minutes
     _registry.newEventDuration(iEvent: 5, newDuration: Duration(hours: 1));
     _registry.newEventDuration(iEvent: 8, newDuration: Duration(hours: 2));
-    _registry.newEventDuration(iEvent: 2, newDuration: Duration(minutes: 15));
     expect(_registry.getEventCompletionProgress(5), isPositive);
 
     //Check if dorting by completion progress works
@@ -99,6 +101,8 @@ void main() {
     List<int> _sortedEventIndexes = _registry.getEventsOrderedByCompletionProgress(now: DateTime.now());
     expect(_sortedEventIndexes[0], 8);
     expect(_sortedEventIndexes[1], 5);
-    expect(_sortedEventIndexes[nEvents-1], 2);
+
+    //Cancle the stream as it is no longer needed
+    _eventStreamSubscription.cancel();
   });
 }

@@ -1,46 +1,56 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 //Event Service-Layer Functions
 class EventRegistry{
   //index is used as a unique identifier for events
   //upon initililaziation, all events are indexed once again
-  int iEventMax = 0;
+  int _iEventMax = 0;
   //The interval for updating events is 15 minutes - this might be changable later
   Duration _eventUpdateInterval = Duration(minutes: 15);
   Timer _eventTicker;
   Map<int,Event> _openEvents = new Map<int,Event>();
   Map<int,Event> _closedEvents = new Map<int,Event>();
-  //Boolean defines if entry should be deleted (true => delete entry)
-  var controller = StreamController<Map<int, bool>>();
+  //First Boolean defines if open or closed events are send
+  //Second Boolean defines if entry should be deleted (true => delete entry)
+  var eventController = StreamController<Map<bool,Map<int, bool>>>();
 
-  Map<int, bool> getOutputMap(Iterable<int> _keys, bool delete){
-    Map<int, bool> _otputMap = new Map<int, bool>();
-    for(int _key in _keys){
-      _otputMap[_key] = delete;
+  Map<bool, Map<int, bool>> getOutputMap({Iterable<int> keysOpen, Iterable<int> keysClosed, bool deleteOpen}){
+    Map<bool, Map<int, bool>> _otputMap = new Map<bool, Map<int, bool>>();
+
+    //Set open data
+    _otputMap[true] = new Map<int, bool>();
+    for(int _key in keysOpen){
+      _otputMap[true][_key] = deleteOpen;
     }
+
+    //Set closed data
+    _otputMap[false] = new Map<int, bool>();
+    for(int _key in keysClosed){
+      _otputMap[false][_key] = null;
+    }
+
     return _otputMap;
   }
 
   //We need this to be a singleton
   //Close controller if no-one is listening
   EventRegistry._internal(){
-    controller.onCancel = () {
+    eventController.onCancel = () {
       _stopEventTicker();
-      controller.close();
+      eventController.close();
     };
-    controller.onListen = (){
+    eventController.onListen = (){
       _startEventTicker();
-      controller.add(getOutputMap(_openEvents.keys, false));
+      eventController.add(getOutputMap(keysOpen: _openEvents.keys, keysClosed: _closedEvents.keys, deleteOpen: false));
       };
     }
 
   //Regularly update all events so the due-dates are updated in the UI
   void _tick(_){
     updateCompletionProgressDataOnOpenTasks(now: DateTime.now());
-    controller.add(getOutputMap(_openEvents.keys, false));
+    eventController.add(getOutputMap(keysOpen: _openEvents.keys, keysClosed: _closedEvents.keys, deleteOpen: false));
   }
 
   _startEventTicker(){
@@ -60,25 +70,25 @@ class EventRegistry{
     return _eventRegistry;
   }
 
-  bool _isEventIndexSave(int iEvent) => (iEvent != null && _openEvents.keys.contains(iEvent));
+  bool _isOpenEvent(int iEvent) => (iEvent != null && _openEvents.keys.contains(iEvent));
+  bool _isClosedEvent(int iEvent) => (iEvent != null && _closedEvents.keys.contains(iEvent));
 
-  void _yieldEvent(int iEvent, bool delete){
-    controller.add({iEvent: delete});
+  void _yieldEvent(bool open, int iEvent, bool delete){
+    eventController.add({open: {iEvent: delete}});
   }
 
   void registerEvent(Event newEvent){
     _openEvents[iEventMax] = newEvent;
-    iEventMax += 1;
-    _yieldEvent(iEventMax - 1, false);
-    Future.delayed(Duration(microseconds: 100));
+    _iEventMax += 1;
+    _yieldEvent(true, iEventMax - 1, false);
   }
 
   //Update event due date for event with index iEvent
   void newEventDueDate({int iEvent, DateTime newDueDate, DateTime now}){
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _openEvents[iEvent].due = newDueDate;
       updateEventCompletionProgress(iEvent: iEvent, now: now);
-      _yieldEvent(iEvent, false);
+      _yieldEvent(true, iEvent, false);
     }
     else{
       throw new Exception('Invalid index!');
@@ -87,10 +97,10 @@ class EventRegistry{
 
   //Update event duration for event with index iEvent
   void newEventDuration({int iEvent, Duration newDuration, DateTime now}){
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _openEvents[iEvent].duration = newDuration;
       updateEventCompletionProgress(iEvent: iEvent, now: now);
-      _yieldEvent(iEvent, false);
+      _yieldEvent(true, iEvent, false);
     }
     else{
       throw new Exception('Invalid index!');
@@ -99,9 +109,9 @@ class EventRegistry{
 
   //Update event name for event with index iEvent
   void newEventName({int iEvent, String newName}){
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _openEvents[iEvent].name = newName;
-      _yieldEvent(iEvent, false);
+      _yieldEvent(true, iEvent, false);
     }
     else{
       throw new Exception('Invalid index!');
@@ -110,9 +120,9 @@ class EventRegistry{
 
   //Update event icon for event with index iEvent
   void newEventIcon({int iEvent, IconData newIcon}){
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _openEvents[iEvent].icon = newIcon;
-      _yieldEvent(iEvent, false);
+      _yieldEvent(true, iEvent, false);
     }
     else{
       throw new Exception('Invalid index!');
@@ -121,9 +131,11 @@ class EventRegistry{
 
   //Update event completion-status for event with index iEvent
   void setEventToCompleted({int iEvent}){
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _closedEvents[iEvent] = _openEvents[iEvent];
       deleteEvent(iEvent);
+      _closedEvents[iEvent].completionDate = DateTime.now();
+      _yieldEvent(false, iEvent, null);
     }
     else{
       throw new Exception('Invalid index!');
@@ -133,7 +145,7 @@ class EventRegistry{
   //Trigger update to an event's completion progress
   void updateEventCompletionProgress({int iEvent, DateTime now}){
     if(now == null){now=DateTime.now();}
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _openEvents[iEvent].calculateCompletionProgress(now);
     }
     else{
@@ -143,35 +155,40 @@ class EventRegistry{
 
   //Shift event due date for event with index iEvent
   void shiftEventDueDate({int iEvent, Duration dueDateShift, DateTime now}){
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _openEvents[iEvent].shiftDueDate(dueDateShift);
       updateEventCompletionProgress(iEvent: iEvent, now: now);
-      _yieldEvent(iEvent, false);
+      _yieldEvent(true, iEvent, false);
     }
     else{
       throw new Exception('Invalid index!');
     }
   }
 
+  get iEventMax => _iEventMax;
+
   //Save getter for events
-  String getEventName(int iEvent) => _isEventIndexSave(iEvent)?_openEvents[iEvent].name:throw new Exception('Invalid index!');
-  DateTime getEventDueDate(int iEvent) => _isEventIndexSave(iEvent)?_openEvents[iEvent].due:throw new Exception('Invalid index!');
-  IconData getEventIcon(int iEvent) => _isEventIndexSave(iEvent)?_openEvents[iEvent].icon:throw new Exception('Invalid index!');
+  String getEventName(int iEvent) => _isOpenEvent(iEvent)?_openEvents[iEvent].name:throw new Exception('Invalid index!');
+  DateTime getEventDueDate(int iEvent) => _isOpenEvent(iEvent)?_openEvents[iEvent].due:throw new Exception('Invalid index!');
+  DateTime getEventCompletionDate(int iEvent) => _isClosedEvent(iEvent)?_closedEvents[iEvent].completionDate:throw new Exception('Invalid index!');
+  IconData getEventIcon(int iEvent) => _isOpenEvent(iEvent)?_openEvents[iEvent].icon:throw new Exception('Invalid index!');
+
   void deleteEvent(int iEvent){
-    if(_isEventIndexSave(iEvent)){
+    if(_isOpenEvent(iEvent)){
       _openEvents.remove(iEvent);
-      _yieldEvent(iEvent, true);
+      _yieldEvent(true, iEvent, true);
       }
       else{
         throw new Exception('Invalid index!');
         }
   }
+
   bool getEventCompletionStatus(int iEvent) => (iEvent != null && iEvent < iEventMax)?_closedEvents.keys.contains(iEvent)?true:false:throw new Exception('Invalid index!');
 
   int getEventCompletionProgress(int iEvent, {DateTime now}){
       if(now == null){now=DateTime.now();}
       if(_openEvents[iEvent].completionProgress == null){
-        _isEventIndexSave(iEvent)?_openEvents[iEvent].calculateCompletionProgress(now):throw new Exception('Invalid index!');
+        _isOpenEvent(iEvent)?_openEvents[iEvent].calculateCompletionProgress(now):throw new Exception('Invalid index!');
         }
       return _openEvents[iEvent].completionProgress;
     }
@@ -183,6 +200,13 @@ class EventRegistry{
     //Sort events by completion progress
     List<int> _sortedEventIndexes = _openEvents.keys.toList();
     _sortedEventIndexes.sort((i,j) => _openEvents[i]._completionProgress.compareTo(_openEvents[j]._completionProgress));
+    return _sortedEventIndexes.reversed.toList();
+  }
+
+  //List of events as ordered by completion date
+  List<int> getEventsSortedByCompletionDate(){
+    List<int> _sortedEventIndexes = _closedEvents.keys.toList();
+    _sortedEventIndexes.sort((i,j) => _closedEvents[i].completionDate.compareTo(_closedEvents[j].completionDate));
     return _sortedEventIndexes.reversed.toList();
   }
   
@@ -197,14 +221,18 @@ class EventRegistry{
   set eventUpdateInterval(Duration valIn) => valIn != null?_eventUpdateInterval=_eventUpdateInterval:throw new Exception('Invalid duration!');
 
   //Used to trigger updates in the UI
-  Stream<Map<int, bool>> eventStream() {
-    return controller.stream;
+  Stream<Map<bool, Map<int, bool>>> eventStream() {
+    return eventController.stream;
+    }
+
+  void cancleEventStream() {
+    eventController.close();
     }
 }
 
 class Event{
   String _name;
-  DateTime _due;
+  DateTime _due, _completionDate;
   Duration _duration;
   IconData _icon;
   int _completionProgress;
@@ -212,6 +240,7 @@ class Event{
   //Setters with sanity-checks
   set name(String valIn) => (valIn != null && valIn.length != 0)?_name = valIn.trim():throw new Exception('Invalid name!');
   set due(DateTime valIn) => valIn != null?_due = valIn:throw new Exception('Invalid Date!');
+  set completionDate(DateTime valIn) => valIn != null?_completionDate = valIn:throw new Exception('Invalid Date!');
   set icon(IconData valIn) => valIn != null?_icon = valIn:throw new Exception('Invalid Icon!');
   //We only support events with durations of at least 15 minuts
   set duration(Duration valIn){
@@ -238,5 +267,6 @@ class Event{
   get due => _due;
   get duration => _duration;
   get icon => _icon;
+  get completionDate => _completionDate;
   get completionProgress => _completionProgress;
 }
