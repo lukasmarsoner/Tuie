@@ -14,7 +14,7 @@ class EventRegistry{
   Map<int,Event> _closedEvents = new Map<int,Event>();
   //First Boolean defines if open or closed events are send
   //Second Boolean defines if entry should be deleted (true => delete entry)
-  var eventController = StreamController<Map<bool,Map<int, bool>>>();
+  StreamController<Map<bool,Map<int, bool>>> eventController = StreamController.broadcast();
 
   Map<bool, Map<int, bool>> getOutputMap({Iterable<int> keysOpen, Iterable<int> keysClosed, bool deleteOpen}){
     Map<bool, Map<int, bool>> _otputMap = new Map<bool, Map<int, bool>>();
@@ -70,8 +70,8 @@ class EventRegistry{
     return _eventRegistry;
   }
 
-  bool _isOpenEvent(int iEvent) => (iEvent != null && _openEvents.keys.contains(iEvent));
-  bool _isClosedEvent(int iEvent) => (iEvent != null && _closedEvents.keys.contains(iEvent));
+  bool isOpenEvent(int iEvent) => (iEvent != null && _openEvents.keys.contains(iEvent));
+  bool isClosedEvent(int iEvent) => (iEvent != null && _closedEvents.keys.contains(iEvent));
 
   void _yieldEvent(bool open, int iEvent, bool delete){
     eventController.add({open: {iEvent: delete}});
@@ -85,7 +85,7 @@ class EventRegistry{
 
   //Update event due date for event with index iEvent
   void newEventDueDate({int iEvent, DateTime newDueDate, DateTime now}){
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _openEvents[iEvent].due = newDueDate;
       updateEventCompletionProgress(iEvent: iEvent, now: now);
       _yieldEvent(true, iEvent, false);
@@ -97,7 +97,7 @@ class EventRegistry{
 
   //Update event duration for event with index iEvent
   void newEventDuration({int iEvent, Duration newDuration, DateTime now}){
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _openEvents[iEvent].duration = newDuration;
       updateEventCompletionProgress(iEvent: iEvent, now: now);
       _yieldEvent(true, iEvent, false);
@@ -109,7 +109,7 @@ class EventRegistry{
 
   //Update event name for event with index iEvent
   void newEventName({int iEvent, String newName}){
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _openEvents[iEvent].name = newName;
       _yieldEvent(true, iEvent, false);
     }
@@ -120,7 +120,7 @@ class EventRegistry{
 
   //Update event icon for event with index iEvent
   void newEventIcon({int iEvent, IconData newIcon}){
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _openEvents[iEvent].icon = newIcon;
       _yieldEvent(true, iEvent, false);
     }
@@ -131,7 +131,7 @@ class EventRegistry{
 
   //Update event completion-status for event with index iEvent
   void setEventToCompleted({int iEvent}){
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _closedEvents[iEvent] = _openEvents[iEvent];
       deleteEvent(iEvent);
       _closedEvents[iEvent].completionDate = DateTime.now();
@@ -145,7 +145,7 @@ class EventRegistry{
   //Trigger update to an event's completion progress
   void updateEventCompletionProgress({int iEvent, DateTime now}){
     if(now == null){now=DateTime.now();}
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _openEvents[iEvent].calculateCompletionProgress(now);
     }
     else{
@@ -155,7 +155,7 @@ class EventRegistry{
 
   //Shift event due date for event with index iEvent
   void shiftEventDueDate({int iEvent, Duration dueDateShift, DateTime now}){
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _openEvents[iEvent].shiftDueDate(dueDateShift);
       updateEventCompletionProgress(iEvent: iEvent, now: now);
       _yieldEvent(true, iEvent, false);
@@ -168,13 +168,13 @@ class EventRegistry{
   get iEventMax => _iEventMax;
 
   //Save getter for events
-  String getEventName(int iEvent) => _isOpenEvent(iEvent)?_openEvents[iEvent].name:throw new Exception('Invalid index!');
-  DateTime getEventDueDate(int iEvent) => _isOpenEvent(iEvent)?_openEvents[iEvent].due:throw new Exception('Invalid index!');
-  DateTime getEventCompletionDate(int iEvent) => _isClosedEvent(iEvent)?_closedEvents[iEvent].completionDate:throw new Exception('Invalid index!');
-  IconData getEventIcon(int iEvent) => _isOpenEvent(iEvent)?_openEvents[iEvent].icon:throw new Exception('Invalid index!');
+  String getEventName(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].name:throw new Exception('Invalid index!');
+  DateTime getEventDueDate(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].due:throw new Exception('Invalid index!');
+  DateTime getEventCompletionDate(int iEvent) => isClosedEvent(iEvent)?_closedEvents[iEvent].completionDate:throw new Exception('Invalid index!');
+  IconData getEventIcon(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].icon:throw new Exception('Invalid index!');
 
   void deleteEvent(int iEvent){
-    if(_isOpenEvent(iEvent)){
+    if(isOpenEvent(iEvent)){
       _openEvents.remove(iEvent);
       _yieldEvent(true, iEvent, true);
       }
@@ -188,7 +188,7 @@ class EventRegistry{
   int getEventCompletionProgress(int iEvent, {DateTime now}){
       if(now == null){now=DateTime.now();}
       if(_openEvents[iEvent].completionProgress == null){
-        _isOpenEvent(iEvent)?_openEvents[iEvent].calculateCompletionProgress(now):throw new Exception('Invalid index!');
+        isOpenEvent(iEvent)?_openEvents[iEvent].calculateCompletionProgress(now):throw new Exception('Invalid index!');
         }
       return _openEvents[iEvent].completionProgress;
     }
@@ -223,10 +223,6 @@ class EventRegistry{
   //Used to trigger updates in the UI
   Stream<Map<bool, Map<int, bool>>> eventStream() {
     return eventController.stream;
-    }
-
-  void cancleEventStream() {
-    eventController.close();
     }
 }
 
