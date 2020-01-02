@@ -32,7 +32,7 @@ void main() {
     await tester.pumpAndSettle();
     int nTestEvents = _registry.nEvents;
 
-    expect(find.byType(EventListItem), findsNWidgets(nTestEvents));
+    expect(find.byType(OpenEventListItem), findsNWidgets(nTestEvents));
 
     //Add an item
     _registry.registerEvent(getTestEvent());
@@ -40,7 +40,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.byType(EventListItem), findsNWidgets(nTestEvents));
+    expect(find.byType(OpenEventListItem), findsNWidgets(nTestEvents));
 
     //Update an event
     _registry.newEventName(iEvent: 1, newName: 'New Name');
@@ -52,7 +52,7 @@ void main() {
     await tester.drag(find.byType(Dismissible).first, Offset(1000.0, 0.0));
     await tester.pumpAndSettle();
     nTestEvents -= 1;
-    expect(find.byType(EventListItem), findsNWidgets(nTestEvents));
+    expect(find.byType(OpenEventListItem), findsNWidgets(nTestEvents));
 
     //Test marking an event as completed
     _registry.newEventName(iEvent: 2, newName: 'New Name');
@@ -81,16 +81,16 @@ void main() {
     _registry.newEventDuration(iEvent: 3, newDuration: Duration(hours: 2));
     _registry.newEventDuration(iEvent: 5, newDuration: Duration(minutes: 15));
     await tester.pumpAndSettle();
-    expect(find.byType(EventListItem).evaluate().last.widget.toString(), '5');
-    expect(find.byType(EventListItem).evaluate().first.widget.toString(), '3');
+    expect(find.byType(OpenEventListItem).evaluate().last.widget.toString(), '5');
+    expect(find.byType(OpenEventListItem).evaluate().first.widget.toString(), '3');
     
     //Set shorter update period for testing
     _registry.eventUpdateInterval = Duration(milliseconds: 1);
     _registry.newEventDuration(iEvent: 3, newDuration: Duration(minutes: 15));
     _registry.newEventDuration(iEvent: 5, newDuration: Duration(hours: 2));
     await tester.pump(Duration(milliseconds: 3));
-    expect(find.byType(EventListItem).evaluate().last.widget.toString(), '3');
-    expect(find.byType(EventListItem).evaluate().first.widget.toString(), '5');
+    expect(find.byType(OpenEventListItem).evaluate().last.widget.toString(), '3');
+    expect(find.byType(OpenEventListItem).evaluate().first.widget.toString(), '5');
     //Set-back to avoid large overhead
     _registry.eventUpdateInterval = Duration(minutes: 15);
   });

@@ -91,7 +91,7 @@ class EventList{
           ?eventItems[isOpen].keys.contains(iEvent)
             ?eventItems[isOpen].remove(iEvent)
             :throw new Exception('Invalid index!')
-          :eventItems[isOpen][iEvent] = EventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
+          :eventItems[isOpen][iEvent] = OpenEventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
         }
       }
     }
@@ -229,7 +229,8 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
   }
 }
 
-class EventListItem extends StatelessWidget{
+
+abstract class EventListItem extends StatelessWidget{
   final int iEvent;
   final EventRegistry eventRegistry;
 
@@ -240,6 +241,11 @@ class EventListItem extends StatelessWidget{
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.debug}) {
     return iEvent.toString();
   }
+}
+
+class OpenEventListItem extends EventListItem{
+
+  OpenEventListItem({iEvent, eventRegistry});
 
   @override
   Widget build(BuildContext context){
@@ -285,6 +291,38 @@ class EventListItem extends StatelessWidget{
           ),
         )
       )
+    );
+  }
+}
+
+class ClosedEventListItem extends EventListItem{
+
+  ClosedEventListItem({iEvent, eventRegistry});
+
+  @override
+  Widget build(BuildContext context){
+    //Show up-to 8 items on screen on phones
+    //TODO: Add proper support for PCs
+
+    int nItemsOnScreen = 8;
+
+    double _widgetHeigt = MediaQuery.of(context).size.height / nItemsOnScreen;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        color: eventRegistry.isOpenEvent(iEvent)?red.withAlpha(eventRegistry.getEventCompletionProgress(iEvent)):pink,
+        width: MediaQuery.of(context).size.width,
+        height: _widgetHeigt,
+        child: Container(
+            key: Key(iEvent.toString()),
+            alignment: Alignment.center,
+            child: ListTile(
+              leading: Icon(eventRegistry.getEventIcon(iEvent), size: _widgetHeigt / 3),
+              title: Text(eventRegistry.getEventName(iEvent))
+            )
+          ),
+        )
     );
   }
 }
