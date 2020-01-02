@@ -29,14 +29,15 @@ class MyApp extends StatelessWidget {
   //We can provide the events here for testing - later these will be loaded
   MyApp({this.eventRegistry}){
     //For testing => add a few test events
-    //for(int i=0; i<10; i++){
-    //  eventRegistry.registerEvent(_getTestEvent());
-    //}
+    for(int i=0; i<10; i++){
+      eventRegistry.registerEvent(_getTestEvent());
+    }
     }
 
   @override
   Widget build(BuildContext context) {
-    EventList eventList = new EventList(eventRegistry);
+    EventList eventList = new EventList();
+    eventList.eventRegistry = eventRegistry;
     InteractiveUILists interactiveUIElements = new InteractiveUILists(eventRegistry, eventList);
     return MaterialApp(
       theme: lightTheme,
@@ -70,21 +71,30 @@ class EventList{
   List<int> eventsSortedByCompletionProgress = new List<int>();
   List<int> eventsSortedByCompletionDate = new List<int>();
 
-  EventList(this.eventRegistry);
+  //Need to always only have one instance of this
+  EventList._internal(){
+    eventItems[true] = new Map<int,Widget>();
+    eventItems[false] = new Map<int,Widget>();
+  }
+
+  static final EventList _eventList = EventList._internal();
+
+  factory EventList() {
+    return _eventList;
+  }
 
   void updateEventEntries(Map<bool, Map<int, bool>> newEvents){
-  if(newEvents != null){
-    for(bool isOpen in newEvents.keys){
-      for(int iEvent in newEvents[isOpen].keys){
-        //Add or update entries
-        newEvents[isOpen][iEvent]
-        ?eventItems[isOpen].keys.contains(iEvent)
-          ?eventItems[isOpen].remove(iEvent)
-          :throw new Exception('Invalid index!')
-        :eventItems[isOpen][iEvent] = EventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
+    if(newEvents != null){
+      for(bool isOpen in newEvents.keys){
+        for(int iEvent in newEvents[isOpen].keys){
+          newEvents[isOpen][iEvent]
+          ?eventItems[isOpen].keys.contains(iEvent)
+            ?eventItems[isOpen].remove(iEvent)
+            :throw new Exception('Invalid index!')
+          :eventItems[isOpen][iEvent] = EventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
+        }
       }
     }
-  }
     eventsSortedByCompletionProgress = eventRegistry.getEventsOrderedByCompletionProgress(now: DateTime.now());
     eventsSortedByCompletionDate = eventRegistry.getEventsSortedByCompletionDate();
   }
@@ -164,38 +174,52 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
     );
   }
 
-  Widget _getFullScreenMessage(BuildContext context){
-    print('Tab Controller value');
-    print(DefaultTabController.of(context).index);
-    if(DefaultTabController.of(context).index == 0) {print('A');return new FullScreenMessage(content: 'Nothing to to right now 😎', icon: Icons.work);}
-    else if(DefaultTabController.of(context).index == 1) {print('B');return new FullScreenMessage(content: 'No finished tasks yet\nLet\'s create some to get started 😄', icon: Icons.work);}
-    else{print('C');return new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work);}
+  List<Widget> _getOpenEventsWidgets(){
+    List<Widget> _widgetsRange = new List<Widget>();
+    switch(eventList.eventsSortedByCompletionProgress.length) {
+      case 0:
+        _widgetsRange.add(new FullScreenMessage(content: 'Nothing to to right now 😎', icon: Icons.work));
+        return _widgetsRange;
+      default:
+        for(int iItem in eventList.eventsSortedByCompletionProgress){
+          _widgetsRange.add(eventList.eventItems[true][eventList.eventsSortedByCompletionProgress[iItem]]);
+        }
+        return _widgetsRange;
+    }
   }
 
-  Widget _getScrollableList(BuildContext context, int iItem){
-    if(DefaultTabController.of(context).index == 0) {return eventList.eventItems[true][eventList.eventsSortedByCompletionProgress[iItem]];}
-    else if(DefaultTabController.of(context).index == 1) {return eventList.eventItems[false][eventList.eventsSortedByCompletionDate[iItem]];}
-    else{return new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work);}
+  List<Widget> _getClosedEventsWidgets(){
+    List<Widget> _widgetsRange = new List<Widget>();
+    switch(eventList.eventsSortedByCompletionDate.length) {
+      case 0:
+        _widgetsRange.add(new FullScreenMessage(content: 'No finished tasks yet\nLet\'s create some to get started 😄', icon: Icons.work));
+        return _widgetsRange;
+      default:
+        for(int iItem in eventList.eventsSortedByCompletionDate){
+          _widgetsRange.add(eventList.eventItems[false][eventList.eventsSortedByCompletionDate[iItem]]);
+        }
+        return _widgetsRange;
+    }
+  }
+
+  List<Widget> _getWidgetRanges(){
+    switch (DefaultTabController.of(context).index) {
+      case 0:
+        return _getOpenEventsWidgets();
+    case 1:
+        return _getClosedEventsWidgets();
+    default:
+      return <Widget>[new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work)];
+    } 
   }
 
   //Sorts the list of event items by their completion progress
   List<Widget> yieldEventSliversSortedByCompletion(BuildContext context){
-    List<Widget> _sliverList = eventList.eventItems.length == 0
-    ?[getSliverAppBar(context),
+    List<Widget> _sliverList = [getSliverAppBar(context),
       SliverList(
-        delegate: SliverChildListDelegate(
-        [_getFullScreenMessage(context)]
-        )
+        delegate: SliverChildListDelegate(_getWidgetRanges())
       )
-    ]
-    :[getSliverAppBar(context),
-      SliverList(
-        delegate: SliverChildBuilderDelegate((BuildContext context, int iItem) {
-        return _getScrollableList(context, iItem);
-      },
-      childCount: eventRegistry.nEvents,
-      )
-    )];
+    ];
     return _sliverList;
   }
 
@@ -230,15 +254,15 @@ class EventListItem extends StatelessWidget{
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Container(
-        color: red.withAlpha(eventRegistry.getEventCompletionProgress(iEvent)),
+        color: eventRegistry.isOpenEvent(iEvent)?red.withAlpha(eventRegistry.getEventCompletionProgress(iEvent)):pink,
         width: MediaQuery.of(context).size.width,
         height: _widgetHeigt,
         child: Dismissible(
           key: Key(iEvent.toString()),
           onDismissed: (direction) {
             direction == DismissDirection.startToEnd
-              ?eventRegistry.deleteEvent(iEvent)
-              :eventRegistry.setEventToCompleted(iEvent: iEvent);
+              ?eventRegistry.setEventToCompleted(iEvent: iEvent)
+              :eventRegistry.deleteEvent(iEvent);
             },
           child: Container(
             alignment: Alignment.center,

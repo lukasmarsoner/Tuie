@@ -76,7 +76,7 @@ class EventRegistry{
   void _yieldEvent(bool open, int iEvent, bool delete){
     eventController.add({open: {iEvent: delete}});
   }
-  
+
   void registerEvent(Event newEvent){
     _openEvents[iEventMax] = newEvent;
     _iEventMax += 1;
@@ -135,7 +135,7 @@ class EventRegistry{
       _closedEvents[iEvent] = _openEvents[iEvent];
       deleteEvent(iEvent);
       _closedEvents[iEvent].completionDate = DateTime.now();
-      _yieldEvent(false, iEvent, null);
+      _yieldEvent(false, iEvent, false);
     }
     else{
       throw new Exception('Invalid index!');
@@ -168,10 +168,10 @@ class EventRegistry{
   get iEventMax => _iEventMax;
 
   //Save getter for events
-  String getEventName(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].name:throw new Exception('Invalid index!');
+  String getEventName(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].name:isClosedEvent(iEvent)?_closedEvents[iEvent].name:throw new Exception('Invalid index!');
   DateTime getEventDueDate(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].due:throw new Exception('Invalid index!');
   DateTime getEventCompletionDate(int iEvent) => isClosedEvent(iEvent)?_closedEvents[iEvent].completionDate:throw new Exception('Invalid index!');
-  IconData getEventIcon(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].icon:throw new Exception('Invalid index!');
+  IconData getEventIcon(int iEvent) => isOpenEvent(iEvent)?_openEvents[iEvent].icon:isClosedEvent(iEvent)?_closedEvents[iEvent].icon:throw new Exception('Invalid index!');
 
   void deleteEvent(int iEvent){
     if(isOpenEvent(iEvent)){
