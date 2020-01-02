@@ -25,11 +25,9 @@ void main() => runApp(MyApp(eventRegistry: new EventRegistry()));
 
 class MyApp extends StatelessWidget {
   final EventRegistry eventRegistry;
-  final EventItemList eventItemList = new EventItemList();
 
   //We can provide the events here for testing - later these will be loaded
   MyApp({this.eventRegistry}){
-    eventItemList.eventRegistry = eventRegistry;
     //For testing => add a few test events
     //for(int i=0; i<10; i++){
     //  eventRegistry.registerEvent(_getTestEvent());
@@ -38,27 +36,59 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    EventList eventList = new EventList(eventRegistry);
+    InteractiveUILists interactiveUIElements = new InteractiveUILists(eventRegistry, eventList);
     return MaterialApp(
       theme: lightTheme,
       home: new Scaffold(
-        body: SafeArea(
-            child: new StreamBuilder(
-            stream: eventRegistry.eventStream(),
-            builder: (BuildContext context, AsyncSnapshot<Map<bool, Map<int, bool>>> event){
-              switch (event.connectionState) {
-                case ConnectionState.waiting:
-                  return new FullScreenMessage(content: 'Loading...', icon: Icons.work);
-                  default:
-                    {
-                      eventItemList.updateEventList(event.data);
-                      return eventItemList.build(context);
-                  }
-              }},
+        body: DefaultTabController(
+          length: 3,
+          child: SafeArea(
+              child: new StreamBuilder(
+              stream: eventRegistry.eventStream(),
+              builder: (BuildContext context, AsyncSnapshot<Map<bool, Map<int, bool>>> event){
+                switch (event.connectionState) {
+                  case ConnectionState.waiting:
+                    return new FullScreenMessage(content: 'Loading...', icon: Icons.work);
+                    default:
+                      {
+                        eventList.updateEventEntries(event.data);
+                        return interactiveUIElements;
+                    }
+                }},
+              )
             )
-          )
+        )
       ),
     );
   }
+}
+
+class EventList{
+  EventRegistry eventRegistry;
+  Map<bool, Map<int,Widget>> eventItems = new Map<bool, Map<int,Widget>>();
+  List<int> eventsSortedByCompletionProgress = new List<int>();
+  List<int> eventsSortedByCompletionDate = new List<int>();
+
+  EventList(this.eventRegistry);
+
+  void updateEventEntries(Map<bool, Map<int, bool>> newEvents){
+  if(newEvents != null){
+    for(bool isOpen in newEvents.keys){
+      for(int iEvent in newEvents[isOpen].keys){
+        //Add or update entries
+        newEvents[isOpen][iEvent]
+        ?eventItems[isOpen].keys.contains(iEvent)
+          ?eventItems[isOpen].remove(iEvent)
+          :throw new Exception('Invalid index!')
+        :eventItems[isOpen][iEvent] = EventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
+      }
+    }
+  }
+    eventsSortedByCompletionProgress = eventRegistry.getEventsOrderedByCompletionProgress(now: DateTime.now());
+    eventsSortedByCompletionDate = eventRegistry.getEventsSortedByCompletionDate();
+  }
+
 }
 
 class FullScreenMessage extends StatelessWidget{
@@ -66,7 +96,6 @@ class FullScreenMessage extends StatelessWidget{
   final IconData icon;
 
   FullScreenMessage({this.content, this.icon});
-
 
   @override
   Widget build(BuildContext context){
@@ -89,93 +118,23 @@ class FullScreenMessage extends StatelessWidget{
   }
 }
 
-
-class EventItemList extends StatefulWidget{
-  Map<bool, Map<int,bool>> newEvents = Map<bool, Map<int,bool>>();
-
-  EventItemList(Map<bool, Map<int,Widget>> newEvents);
-
-  @override
-  EventItemListState createState() => new EventItemListState(newEvents);
-}
-
-class EventItemListState extends State<EventItemList> with SingleTickerProviderStateMixin{
-  Map<bool, Map<int,Widget>> eventItems = Map<bool, Map<int,Widget>>();
-  Map<bool, Map<int,bool>> newEvents = Map<bool, Map<int,bool>>();
-  List<int> eventsSortedByCompletionProgress = new List<int>();
-  List<int> eventsSortedByCompletionDate = new List<int>();
-  EventRegistry eventRegistry;
-  TabController tabController;
-
-  @override
-  void initState() {
-    tabController = new TabController(length: 3, vsync: this);
-    super.initState();
-  }
-
-  EventItemListState(Map<bool, Map<int, bool>> newEvents){
-    if(newEvents != null){
-      for(bool isOpen in newEvents.keys){
-        for(int iEvent in newEvents[isOpen].keys){
-          //Add or update entries
-          newEvents[isOpen][iEvent]
-          ?eventItems[isOpen].keys.contains(iEvent)
-            ?eventItems[isOpen].remove(iEvent)
-            :throw new Exception('Invalid index!')
-          :eventItems[isOpen][iEvent] = EventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
-        }
-      }
-    }
-
-  }
-
-  Widget _getFullScreenMessage(){
-    if(tabController.index == 0) {return new FullScreenMessage(content: 'Nothing to to right now 😎', icon: Icons.work);}
-    else if(tabController.index == 1) {return new FullScreenMessage(content: 'No finished tasks yet\nLet\'s create some to get started 😄', icon: Icons.work);}
-    else{return new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work);}
-  }
-
-  Widget _getScrollableList(int iItem){
-    if(tabController.index == 0) {return eventItems[true][eventsSortedByCompletionProgress[iItem]];}
-    else if(tabController.index == 1) {return eventItems[false][eventsSortedByCompletionDate[iItem]];}
-    else{return new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work);}
-  }
-
-  //Sorts the list of event items by their completion progress
-  List<Widget> yieldEventSliversSortedByCompletion(BuildContext context){
-    List<Widget> _sliverList = eventItems.length == 0
-    ?[new MainSliverAppBar(eventRegistry: eventRegistry, tabController: tabController),
-      SliverList(
-        delegate: SliverChildListDelegate(
-        [_getFullScreenMessage()]
-        )
-      )
-    ]
-    :[new MainSliverAppBar(eventRegistry: eventRegistry, tabController: tabController),
-      SliverList(
-        delegate: SliverChildBuilderDelegate((BuildContext context, int iItem) {
-        return _getScrollableList(iItem);
-      },
-      childCount: eventRegistry.nEvents,
-      )
-    )];
-    return _sliverList;
-  }
-
-  @override
-  Widget build(BuildContext context){
-    eventsSortedByCompletionProgress = eventRegistry.getEventsOrderedByCompletionProgress(now: DateTime.now());
-    eventsSortedByCompletionDate = eventRegistry.getEventsSortedByCompletionDate();
-    return CustomScrollView(slivers: yieldEventSliversSortedByCompletion(context));
-  }
-}
-
-
-class MainSliverAppBar extends StatelessWidget{
+class InteractiveUILists extends StatefulWidget {
+  static InteractiveUIListsState of(BuildContext context) => context.findAncestorStateOfType<InteractiveUIListsState>();
   final EventRegistry eventRegistry;
-  final TabController tabController;
+  final EventList eventList;
+  
+  InteractiveUILists(this.eventRegistry, this.eventList);
 
-  MainSliverAppBar({this.eventRegistry, this.tabController});
+  @override
+  InteractiveUIListsState createState() => InteractiveUIListsState(eventRegistry, eventList);
+}
+
+class InteractiveUIListsState extends State<InteractiveUILists>{
+  EventRegistry eventRegistry;
+  Function updateEventEntries;
+  EventList eventList;
+
+  InteractiveUIListsState(this.eventRegistry, this.eventList);
 
   SliverAppBar getSliverAppBar(BuildContext context){
     double _screenHeight = MediaQuery.of(context).size.height;
@@ -185,17 +144,17 @@ class MainSliverAppBar extends StatelessWidget{
       shape: RoundedRectangleBorder(borderRadius: BorderRadiusDirectional.only(bottomEnd: Radius.circular(10.0), bottomStart: Radius.circular(10.0))),
       pinned: true,
       snap: true,
-      bottom: getTabBar(),
+      bottom: getTabBar(context),
       floating: true,
     );
 
     return _appBar;
   }
 
-  Widget getTabBar(){
+  Widget getTabBar(BuildContext context){
     return TabBar(
-      controller: tabController,
       labelColor: white,
+      onTap: (_) => setState(()=> null),
       unselectedLabelColor: Colors.black,
       tabs: [
         new Tab(icon: new Icon(Icons.info), key: Key('OpenItemsTab'),),
@@ -205,12 +164,46 @@ class MainSliverAppBar extends StatelessWidget{
     );
   }
 
+  Widget _getFullScreenMessage(BuildContext context){
+    print('Tab Controller value');
+    print(DefaultTabController.of(context).index);
+    if(DefaultTabController.of(context).index == 0) {print('A');return new FullScreenMessage(content: 'Nothing to to right now 😎', icon: Icons.work);}
+    else if(DefaultTabController.of(context).index == 1) {print('B');return new FullScreenMessage(content: 'No finished tasks yet\nLet\'s create some to get started 😄', icon: Icons.work);}
+    else{print('C');return new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work);}
+  }
+
+  Widget _getScrollableList(BuildContext context, int iItem){
+    if(DefaultTabController.of(context).index == 0) {return eventList.eventItems[true][eventList.eventsSortedByCompletionProgress[iItem]];}
+    else if(DefaultTabController.of(context).index == 1) {return eventList.eventItems[false][eventList.eventsSortedByCompletionDate[iItem]];}
+    else{return new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work);}
+  }
+
+  //Sorts the list of event items by their completion progress
+  List<Widget> yieldEventSliversSortedByCompletion(BuildContext context){
+    List<Widget> _sliverList = eventList.eventItems.length == 0
+    ?[getSliverAppBar(context),
+      SliverList(
+        delegate: SliverChildListDelegate(
+        [_getFullScreenMessage(context)]
+        )
+      )
+    ]
+    :[getSliverAppBar(context),
+      SliverList(
+        delegate: SliverChildBuilderDelegate((BuildContext context, int iItem) {
+        return _getScrollableList(context, iItem);
+      },
+      childCount: eventRegistry.nEvents,
+      )
+    )];
+    return _sliverList;
+  }
+
   @override
   Widget build(BuildContext context){
-    return getSliverAppBar(context);
+    return CustomScrollView(slivers: yieldEventSliversSortedByCompletion(context));
   }
 }
-
 
 class EventListItem extends StatelessWidget{
   final int iEvent;

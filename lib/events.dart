@@ -76,7 +76,7 @@ class EventRegistry{
   void _yieldEvent(bool open, int iEvent, bool delete){
     eventController.add({open: {iEvent: delete}});
   }
-
+  
   void registerEvent(Event newEvent){
     _openEvents[iEventMax] = newEvent;
     _iEventMax += 1;
