@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:tuieno/events.dart';
+import 'package:tuie/events.dart';
 import 'events.dart';
-import 'package:tuieno/design.dart';
+import 'package:tuie/design.dart';
 
 //Only used for testing
 Map<String,dynamic> testIO = {
