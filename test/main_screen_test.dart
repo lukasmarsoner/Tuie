@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tuieno/events.dart';
-import 'package:tuieno/main.dart';
+import 'package:tuie/events.dart';
+import 'package:tuie/main.dart';
 import 'test_utils.dart';
 
 EventRegistry _registry = new EventRegistry();
@@ -14,15 +14,20 @@ void main() {
     //Build initial list
     await tester.pumpWidget(MyApp(eventRegistry: _registry));
 
-    expect(find.text('Loading...'), findsOneWidget);
-    await tester.pumpAndSettle();
-
     _registry.deleteEvent(0);
 
     await tester.pumpAndSettle();
     
     expect(find.text('Nothing to to right now 😎'), findsOneWidget);
     expect(find.text('TuieNo'), findsOneWidget);
+    await tester.tap(find.byKey(Key('ClosedItemsTab')));
+    await tester.pumpAndSettle();
+    expect(find.text('No finished tasks yet\nLet\'s create some to get started 😄'), findsOneWidget);
+    await tester.tap(find.byKey(Key('AnalysisTab')));
+    await tester.pumpAndSettle();
+    expect(find.text('No graphs yet 🙃'), findsOneWidget);
+    await tester.tap(find.byKey(Key('OpenItemsTab')));
+    await tester.pumpAndSettle();
 
     for(int i=0; i<5; i++){
       _registry.registerEvent(getTestEvent());
@@ -49,7 +54,7 @@ void main() {
 
     //Delete an Event
     expect(find.byKey(Key('1')), findsOneWidget);
-    await tester.drag(find.byType(Dismissible).first, Offset(1000.0, 0.0));
+    await tester.drag(find.byType(Dismissible).first, Offset(-1000.0, 0.0));
     await tester.pumpAndSettle();
     nTestEvents -= 1;
     expect(find.byType(OpenEventListItem), findsNWidgets(nTestEvents));
@@ -59,7 +64,7 @@ void main() {
     expect(find.byKey(Key('2')), findsNWidgets(1));
     expect(_registry.getEventCompletionStatus(1), false);
 
-    await tester.drag(find.byKey(Key('2')), Offset(-1000.0, 0.0));
+    await tester.drag(find.byKey(Key('2')), Offset(1000.0, 0.0));
     await tester.pumpAndSettle();
     expect(_registry.getEventCompletionStatus(2), true);
 

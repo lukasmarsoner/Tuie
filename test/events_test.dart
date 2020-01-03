@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tuieno/events.dart';
+import 'package:tuie/events.dart';
 import 'test_utils.dart';
 import 'dart:async';
 

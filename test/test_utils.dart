@@ -1,4 +1,4 @@
-import 'package:tuieno/events.dart';
+import 'package:tuie/events.dart';
 import 'package:flutter/material.dart';
 
 

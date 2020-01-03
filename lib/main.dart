@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:tuie/events.dart';
 import 'events.dart';
+import 'dart:async';
 import 'package:tuie/design.dart';
 
 //Only used for testing
@@ -29,76 +30,25 @@ class MyApp extends StatelessWidget {
   //We can provide the events here for testing - later these will be loaded
   MyApp({this.eventRegistry}){
     //For testing => add a few test events
-    for(int i=0; i<10; i++){
-      eventRegistry.registerEvent(_getTestEvent());
-    }
-    }
+    //for(int i=0; i<10; i++){
+    //  eventRegistry.registerEvent(_getTestEvent());
+    //}
+  }
 
   @override
   Widget build(BuildContext context) {
-    EventList eventList = new EventList();
-    eventList.eventRegistry = eventRegistry;
-    InteractiveUILists interactiveUIElements = new InteractiveUILists(eventRegistry, eventList);
     return MaterialApp(
       theme: lightTheme,
       home: new Scaffold(
         body: DefaultTabController(
           length: 3,
           child: SafeArea(
-              child: new StreamBuilder(
-              stream: eventRegistry.eventStream(),
-              builder: (BuildContext context, AsyncSnapshot<Map<bool, Map<int, bool>>> event){
-                switch (event.connectionState) {
-                  case ConnectionState.waiting:
-                    return new FullScreenMessage(content: 'Loading...', icon: Icons.work);
-                    default:
-                      {
-                        eventList.updateEventEntries(event.data);
-                        return interactiveUIElements;
-                    }
-                }},
+              child: new InteractiveUILists(eventRegistry),
               )
             )
         )
-      ),
     );
   }
-}
-
-class EventList{
-  EventRegistry eventRegistry;
-  Map<bool, Map<int,Widget>> eventItems = new Map<bool, Map<int,Widget>>();
-  List<int> eventsSortedByCompletionProgress = new List<int>();
-  List<int> eventsSortedByCompletionDate = new List<int>();
-
-  //Need to always only have one instance of this
-  EventList._internal(){
-    eventItems[true] = new Map<int,Widget>();
-    eventItems[false] = new Map<int,Widget>();
-  }
-
-  static final EventList _eventList = EventList._internal();
-
-  factory EventList() {
-    return _eventList;
-  }
-
-  void updateEventEntries(Map<bool, Map<int, bool>> newEvents){
-    if(newEvents != null){
-      for(bool isOpen in newEvents.keys){
-        for(int iEvent in newEvents[isOpen].keys){
-          newEvents[isOpen][iEvent]
-          ?eventItems[isOpen].keys.contains(iEvent)
-            ?eventItems[isOpen].remove(iEvent)
-            :throw new Exception('Invalid index!')
-          :eventItems[isOpen][iEvent] = OpenEventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
-        }
-      }
-    }
-    eventsSortedByCompletionProgress = eventRegistry.getEventsOrderedByCompletionProgress(now: DateTime.now());
-    eventsSortedByCompletionDate = eventRegistry.getEventsSortedByCompletionDate();
-  }
-
 }
 
 class FullScreenMessage extends StatelessWidget{
@@ -131,20 +81,57 @@ class FullScreenMessage extends StatelessWidget{
 class InteractiveUILists extends StatefulWidget {
   static InteractiveUIListsState of(BuildContext context) => context.findAncestorStateOfType<InteractiveUIListsState>();
   final EventRegistry eventRegistry;
-  final EventList eventList;
   
-  InteractiveUILists(this.eventRegistry, this.eventList);
+  InteractiveUILists(this.eventRegistry);
 
   @override
-  InteractiveUIListsState createState() => InteractiveUIListsState(eventRegistry, eventList);
+  InteractiveUIListsState createState() => InteractiveUIListsState(eventRegistry: eventRegistry);
 }
 
 class InteractiveUIListsState extends State<InteractiveUILists>{
   EventRegistry eventRegistry;
   Function updateEventEntries;
-  EventList eventList;
+  StreamSubscription eventStreamSubscription;
+  Map<bool, Map<int,Widget>> eventItems = new Map<bool, Map<int,Widget>>();
+  List<int> eventsSortedByCompletionProgress = new List<int>();
+  List<int> eventsSortedByCompletionDate = new List<int>();
 
-  InteractiveUIListsState(this.eventRegistry, this.eventList);
+  updateEventList(Map<bool, Map<int, bool>> newEvents){
+    if(newEvents != null){
+      for(bool isOpen in newEvents.keys){
+        if(newEvents[isOpen] != null){
+          for(int iEvent in newEvents[isOpen].keys){
+            newEvents[isOpen][iEvent]
+            ?eventItems[isOpen].keys.contains(iEvent)
+              ?eventItems[isOpen].remove(iEvent)
+              :throw new Exception('Invalid index!')
+            :eventItems[isOpen][iEvent] = isOpen
+              ?OpenEventListItem(iEvent: iEvent, eventRegistry: eventRegistry)
+              :ClosedEventListItem(iEvent: iEvent, eventRegistry: eventRegistry);
+          }
+        }
+      }
+    }
+    eventsSortedByCompletionProgress = eventRegistry.getEventsOrderedByCompletionProgress(now: DateTime.now());
+    eventsSortedByCompletionDate = eventRegistry.getEventsSortedByCompletionDate();
+    setState(() => null);
+  }
+
+  InteractiveUIListsState({this.eventRegistry});
+
+  @override
+  dispose(){
+    eventStreamSubscription.cancel();
+    super.dispose();
+  }
+
+  @override
+  initState(){
+    super.initState();
+    eventItems[true] = new Map<int,Widget>();
+    eventItems[false] = new Map<int,Widget>();
+    eventStreamSubscription = eventRegistry.eventStream().listen((newEvents) => updateEventList(newEvents));
+  }
 
   SliverAppBar getSliverAppBar(BuildContext context){
     double _screenHeight = MediaQuery.of(context).size.height;
@@ -176,13 +163,13 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
 
   List<Widget> _getOpenEventsWidgets(){
     List<Widget> _widgetsRange = new List<Widget>();
-    switch(eventList.eventsSortedByCompletionProgress.length) {
+    switch(eventsSortedByCompletionProgress.length) {
       case 0:
         _widgetsRange.add(new FullScreenMessage(content: 'Nothing to to right now 😎', icon: Icons.work));
         return _widgetsRange;
       default:
-        for(int iItem in eventList.eventsSortedByCompletionProgress){
-          _widgetsRange.add(eventList.eventItems[true][eventList.eventsSortedByCompletionProgress[iItem]]);
+        for(int iItem in eventsSortedByCompletionProgress){
+          _widgetsRange.add(eventItems[true][iItem]);
         }
         return _widgetsRange;
     }
@@ -190,13 +177,13 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
 
   List<Widget> _getClosedEventsWidgets(){
     List<Widget> _widgetsRange = new List<Widget>();
-    switch(eventList.eventsSortedByCompletionDate.length) {
+    switch(eventsSortedByCompletionDate.length) {
       case 0:
         _widgetsRange.add(new FullScreenMessage(content: 'No finished tasks yet\nLet\'s create some to get started 😄', icon: Icons.work));
         return _widgetsRange;
       default:
-        for(int iItem in eventList.eventsSortedByCompletionDate){
-          _widgetsRange.add(eventList.eventItems[false][eventList.eventsSortedByCompletionDate[iItem]]);
+        for(int iItem in eventsSortedByCompletionDate){
+          _widgetsRange.add(eventItems[false][iItem]);
         }
         return _widgetsRange;
     }
@@ -209,7 +196,7 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
     case 1:
         return _getClosedEventsWidgets();
     default:
-      return <Widget>[new FullScreenMessage(content: 'No graphs yet 🙃	', icon: Icons.work)];
+      return <Widget>[new FullScreenMessage(content: 'No graphs yet 🙃', icon: Icons.work)];
     } 
   }
 
@@ -245,7 +232,7 @@ abstract class EventListItem extends StatelessWidget{
 
 class OpenEventListItem extends EventListItem{
 
-  OpenEventListItem({iEvent, eventRegistry});
+  OpenEventListItem({iEvent, eventRegistry}) : super(iEvent: iEvent, eventRegistry: eventRegistry);
 
   @override
   Widget build(BuildContext context){
@@ -260,7 +247,7 @@ class OpenEventListItem extends EventListItem{
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Container(
-        color: eventRegistry.isOpenEvent(iEvent)?red.withAlpha(eventRegistry.getEventCompletionProgress(iEvent)):pink,
+        color: red.withAlpha(eventRegistry.getEventCompletionProgress(iEvent)),
         width: MediaQuery.of(context).size.width,
         height: _widgetHeigt,
         child: Dismissible(
@@ -297,7 +284,7 @@ class OpenEventListItem extends EventListItem{
 
 class ClosedEventListItem extends EventListItem{
 
-  ClosedEventListItem({iEvent, eventRegistry});
+  ClosedEventListItem({iEvent, eventRegistry}) : super(iEvent: iEvent, eventRegistry: eventRegistry);
 
   @override
   Widget build(BuildContext context){
@@ -311,7 +298,7 @@ class ClosedEventListItem extends EventListItem{
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Container(
-        color: eventRegistry.isOpenEvent(iEvent)?red.withAlpha(eventRegistry.getEventCompletionProgress(iEvent)):pink,
+        color: pink,
         width: MediaQuery.of(context).size.width,
         height: _widgetHeigt,
         child: Container(
