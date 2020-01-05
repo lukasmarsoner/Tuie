@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tuie/events.dart';
+import 'package:tuie/business_logic/event_registry.dart';
+import 'package:tuie/business_logic/event.dart';
 import 'test_utils.dart';
 import 'dart:async';
 
@@ -8,7 +9,7 @@ EventRegistry _registry = new EventRegistry();
 IconData acUnit = Icons.ac_unit;
 
 void main() {
-  test('Basic Event-tests', () async {
+  test('Event-Class', () async {
     //Test creating a new Event
     Event _event = getTestEvent();
 
@@ -46,7 +47,7 @@ void main() {
     expect(_event.completionProgress, 255);
   });
 
-  test('Basic Event-Registry tests', () async {
+  test('Event-Registry Class', () async {
     Event _event = getTestEvent();
 
     //Register a new Event
