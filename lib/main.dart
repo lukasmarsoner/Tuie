@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:tuie/business_logic/event_registry.dart';
 import 'package:tuie/business_logic/event.dart';
 import 'package:tuie/ui_elements/interactive_list.dart';
-import 'package:tuie/design.dart';
+import 'package:tuie/ui_elements/design.dart';
+import 'package:tuie/ui_elements/bottom_sheed.dart';
 
 //Only used for testing
 Map<String,dynamic> testIO = {
@@ -29,6 +29,8 @@ class MyApp extends StatelessWidget {
 
   //We can provide the events here for testing - later these will be loaded
   MyApp({this.eventRegistry}){
+    //Load the current theme
+    setSeasonalTheme();
     //For testing => add a few test events
     //for(int i=0; i<10; i++){
     //  eventRegistry.registerEvent(_getTestEvent());
@@ -40,14 +42,19 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       theme: lightTheme,
       home: new Scaffold(
-        backgroundColor: Color(0xffECECEC),
+        backgroundColor: backgroundColor,
         body: DefaultTabController(
           length: 3,
           child: SafeArea(
-              child: new InteractiveUILists(eventRegistry),
-              )
+            child: Stack(
+              children: <Widget>[
+                new InteractiveUILists(eventRegistry),
+                new ExpandingBottonSheet()
+              ]
             )
+          ),
         )
+      )
     );
   }
 }

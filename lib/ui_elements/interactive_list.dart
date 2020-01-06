@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:tuie/business_logic/event_registry.dart';
 import 'package:tuie/ui_elements/event_item_list.dart';
+import 'package:tuie/ui_elements/sliver_app_bar.dart';
 import 'dart:async';
 
 class FullScreenMessage extends StatelessWidget{
   final String content;
-  final IconData icon;
+  final String imagePath;
 
-  FullScreenMessage({this.content, this.icon});
+  FullScreenMessage({this.content, this.imagePath});
 
   @override
   Widget build(BuildContext context){
-    Text _text = Text(content);
+    Padding _text = Padding(
+      padding: EdgeInsets.only(top: 20),
+      child: Text(content, textAlign: TextAlign.center, style: TextStyle(fontSize: 20.0))
+    );
 
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).size.height * 1/20),
@@ -24,7 +28,7 @@ class FullScreenMessage extends StatelessWidget{
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 3/4),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[Icon(icon, size: MediaQuery.of(context).size.width * 1/4,), _text],
+              children: <Widget>[Image.asset(imagePath, height: MediaQuery.of(context).size.width * 1/4, width: MediaQuery.of(context).size.width * 1/4), _text],
             )
         )]
       )
@@ -86,30 +90,16 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
     eventStreamSubscription = eventRegistry.eventStream().listen((newEvents) => updateEventList(newEvents));
   }
 
-  SliverAppBar getSliverAppBar(BuildContext context){
-    double _screenHeight = MediaQuery.of(context).size.height;
-    SliverAppBar _appBar = new SliverAppBar(
-      expandedHeight: _screenHeight * 1/4,
-      title: Text('TuieNo'),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadiusDirectional.only(bottomEnd: Radius.circular(10.0), bottomStart: Radius.circular(10.0))),
-      pinned: true,
-      snap: true,
-      bottom: getTabBar(context),
-      floating: true,
-    );
-
-    return _appBar;
-  }
-
   Widget getTabBar(BuildContext context){
     return TabBar(
       labelColor: Colors.white,
+      indicatorColor: Colors.white,
       onTap: (_) => setState(()=> null),
       unselectedLabelColor: Colors.black,
       tabs: [
-        new Tab(icon: new Icon(Icons.info), key: Key('OpenItemsTab'),),
-        new Tab(icon: new Icon(Icons.account_circle), key: Key('ClosedItemsTab'),),
-        new Tab(icon: new Icon(Icons.lightbulb_outline), key: Key('AnalysisTab'),),
+        new Tab(icon: Container(padding: EdgeInsets.all(6) ,child: new Image.asset('assets/icons/tab_menu/alarm-clock.png')), key: Key('OpenItemsTab'),),
+        new Tab(icon: Container(padding: EdgeInsets.all(6) ,child: new Image.asset('assets/icons/tab_menu/tea-cup.png')), key: Key('ClosedItemsTab'),),
+        new Tab(icon: Container(padding: EdgeInsets.all(6) ,child: new Image.asset('assets/icons/tab_menu/statistics.png')), key: Key('AnalysisTab'),),
       ],
     );
   }
@@ -118,7 +108,7 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
     List<Widget> _widgetsRange = new List<Widget>();
     switch(eventsSortedByCompletionProgress.length) {
       case 0:
-        _widgetsRange.add(new FullScreenMessage(content: 'Nothing to to right now 😎', icon: Icons.work));
+        _widgetsRange.add(new FullScreenMessage(content: 'Nothing to to right now...', imagePath: 'assets/icons/beach.png'));
         return _widgetsRange;
       default:
         for(int iItem in eventsSortedByCompletionProgress){
@@ -132,7 +122,7 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
     List<Widget> _widgetsRange = new List<Widget>();
     switch(eventsSortedByCompletionDate.length) {
       case 0:
-        _widgetsRange.add(new FullScreenMessage(content: 'No finished tasks yet\nLet\'s create some to get started 😄', icon: Icons.work));
+        _widgetsRange.add(new FullScreenMessage(content: 'No finished tasks yet\nLet\'s create some to get started!', imagePath: 'assets/icons/super.png'));
         return _widgetsRange;
       default:
         for(int iItem in eventsSortedByCompletionDate){
@@ -149,13 +139,13 @@ class InteractiveUIListsState extends State<InteractiveUILists>{
     case 1:
         return _getClosedEventsWidgets();
     default:
-      return <Widget>[new FullScreenMessage(content: 'No graphs yet 🙃', icon: Icons.work)];
+      return <Widget>[new FullScreenMessage(content: 'No graphs yet', imagePath: 'assets/icons/beach.png')];
     } 
   }
 
   //Sorts the list of event items by their completion progress
   List<Widget> yieldEventSliversSortedByCompletion(BuildContext context){
-    List<Widget> _sliverList = [getSliverAppBar(context),
+    List<Widget> _sliverList = [new DynamicTopMenu(tabBar: getTabBar(context)),
       SliverList(
         delegate: SliverChildListDelegate(_getWidgetRanges())
       )

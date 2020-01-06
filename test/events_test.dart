@@ -45,6 +45,15 @@ void main() {
     _event.duration = Duration(minutes: 30);
     _event.calculateCompletionProgress(_event.due);
     expect(_event.completionProgress, 255);
+
+
+    //Test if all errors for setters are thrown as expected
+    expect(() => _event.name = null, throwsException);
+    expect(() => _event.due = null, throwsException);
+    expect(() => _event.icon = null, throwsException);
+    expect(() => _event.completionDate = null, throwsException);
+    expect(() => _event.duration = null, throwsException);
+    expect(() => _event.shiftDueDate(null), throwsException);
   });
 
   test('Event-Registry Class', () async {
@@ -97,11 +106,34 @@ void main() {
     _registry.newEventDuration(iEvent: 8, newDuration: Duration(hours: 2));
     expect(_registry.getEventCompletionProgress(5), isPositive);
 
-    //Check if dorting by completion progress works
+    //Check if sorting by completion progress works
     nEvents = _registry.nEvents;
     List<int> _sortedEventIndexes = _registry.getEventsOrderedByCompletionProgress(now: DateTime.now());
     expect(_sortedEventIndexes[0], 8);
     expect(_sortedEventIndexes[1], 5);
+
+    //Test getting an event from the registry
+    _registry.newEventName(iEvent: 5, newName: 'Test');
+    expect(_registry.getEvent(5).name, 'Test');
+
+    //Test if all errors for setters are thrown as expected
+    expect(() => _registry.newEventDueDate(iEvent: -1), throwsException);
+    expect(() => _registry.newEventDuration(iEvent: -1), throwsException);
+    expect(() => _registry.newEventName(iEvent: -1), throwsException);
+    expect(() => _registry.newEventIcon(iEvent: -1), throwsException);
+    expect(() => _registry.setEventToCompleted(iEvent: -1), throwsException);
+    expect(() => _registry.updateEventCompletionProgress(iEvent: -1), throwsException);
+    expect(() => _registry.shiftEventDueDate(iEvent: -1), throwsException);
+    expect(() => _registry.deleteEvent(-1), throwsException);
+
+    //Test if all errors for getters are thrown as expected
+    expect(() => _registry.getEventName(-1), throwsException);
+    expect(() => _registry.getEventDueDate(-1), throwsException);
+    expect(() => _registry.getEventCompletionDate(-1), throwsException);
+    expect(() => _registry.getEventIcon(-1), throwsException);
+    expect(() => _registry.getEventCompletionStatus(-1), throwsException);
+    expect(() => _registry.getEventCompletionProgress(-1), throwsException);
+
 
     //Cancle the stream as it is no longer needed
     _eventStreamSubscription.cancel();

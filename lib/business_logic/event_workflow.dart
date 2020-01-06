@@ -1,0 +1,23 @@
+import 'package:tuie/business_logic/event.dart';
+import 'package:tuie/business_logic/event_registry.dart';
+import 'dart:async';
+
+//This module keeps track of temporary data for new events
+//and events being edited before they are comitted to the registry
+class EventWorkflowHandler{
+  EventRegistry eventRegistry;
+  Event _workflowEvent;
+  StreamController<Map<bool,Map<int, bool>>> eventController = StreamController();
+  int iEvent;
+
+  EventWorkflowHandler({this.eventRegistry, this.iEvent});
+
+  void registerEvent(int iEvent){
+    //Check if it is an open event - error is thrown by the method
+    eventRegistry.isOpenEvent(iEvent);
+
+    //Copy data from item to be edited
+    _workflowEvent = eventRegistry.getEvent(iEvent);
+  }
+
+}

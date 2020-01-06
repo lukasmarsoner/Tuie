@@ -30,26 +30,13 @@ class OpenEventListItem extends EventListItem{
     double _iconHeight = _widgetHeigt * 4/10;
 
     return Padding(
-      padding: EdgeInsets.all(12.0),
+      padding: EdgeInsets.all(8.0),
       child: new Container(
         width: MediaQuery.of(context).size.width,
         height: _widgetHeigt,
-        decoration: BoxDecoration(
-            boxShadow: [
-              new BoxShadow(
-                blurRadius: 10.0,
-                color: Colors.black.withOpacity(0.8),
-                offset: new Offset(5, 5)),
-              new BoxShadow(
-                blurRadius: 10.0,
-                color: Colors.white,
-                offset: new Offset(-6, -5))
-            ]
-        ),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10.0)
           ),
             alignment: Alignment.center,
             child: Dismissible(
@@ -68,21 +55,19 @@ class OpenEventListItem extends EventListItem{
               ),
               background: Container(
                 decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(10.0)
+                  color: Color(0xff25ae88),
                 ),
                 alignment: Alignment.centerLeft,
                 padding: EdgeInsets.only(left: _iconHeight/4),
-                child: Icon(Icons.check_circle_outline, size: _iconHeight)
+                child: Image.asset('assets/icons/success.png', height: _iconHeight, width: _iconHeight),
               ),
               secondaryBackground: Container(
                 decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(10.0)
+                  color: Color(0xffcc5d48),
                 ),
                 alignment: Alignment.centerRight,
                 padding: EdgeInsets.only(right: _iconHeight/4),
-                child: Icon(Icons.delete_outline, size: _iconHeight)
+                child: Image.asset('assets/icons/trash.png', height: _iconHeight, width: _iconHeight)
               ),
             )
           ),
@@ -105,27 +90,14 @@ class ClosedEventListItem extends EventListItem{
     double _widgetHeigt = MediaQuery.of(context).size.height / nItemsOnScreen;
 
     return Padding(
-      padding: EdgeInsets.all(12.0),
+      padding: EdgeInsets.all(8),
       child: new Container(
         key: Key(iEvent.toString()),
         width: MediaQuery.of(context).size.width,
         height: _widgetHeigt,
-        decoration: BoxDecoration(
-            boxShadow: [
-              new BoxShadow(
-                blurRadius: 10.0,
-                color: Colors.black.withOpacity(0.8),
-                offset: new Offset(5, 5)),
-              new BoxShadow(
-                blurRadius: 10.0,
-                color: Colors.white,
-                offset: new Offset(-6, -5))
-            ]
-        ),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10.0)
           ),
             alignment: Alignment.center,
             child: Container(
