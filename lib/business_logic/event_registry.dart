@@ -121,7 +121,7 @@ class EventRegistry{
   }
 
   //Update event icon for event with index iEvent
-  void newEventIcon({int iEvent, IconData newIcon}){
+  void newEventIcon({int iEvent, Image newIcon}){
     if(isOpenEvent(iEvent)){
       _openEvents[iEvent].icon = newIcon;
       _yieldEvent(true, iEvent, false);
@@ -183,7 +183,7 @@ class EventRegistry{
   DateTime getEventCompletionDate(int iEvent) => isClosedEvent(iEvent)
     ?_closedEvents[iEvent].completionDate
     :throw new Exception('Invalid index!');
-  IconData getEventIcon(int iEvent) => isOpenEvent(iEvent)
+  Image getEventIcon(int iEvent) => isOpenEvent(iEvent)
     ?_openEvents[iEvent].icon
     :isClosedEvent(iEvent)
       ?_closedEvents[iEvent].icon

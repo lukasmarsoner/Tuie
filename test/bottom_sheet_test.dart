@@ -24,9 +24,19 @@ void main() {
     await tester.drag(find.byType(ExpandingBottonSheet), Offset(0, 1000));
     await tester.pumpAndSettle();
 
+    final Offset firstLocation = tester.getBottomLeft(find.byType(ExpandingBottonSheet));
+    final TestGesture _gesture = await tester.startGesture(firstLocation);
+
     //Test sheet folling back to the bottom
-    await tester.drag(find.byType(ExpandingBottonSheet), Offset(0, -10));
+    await _gesture.moveBy(Offset(0, 1));
+    await tester.pumpAndSettle();
+    await _gesture.removePointer();
     await tester.pumpAndSettle();
 
+    await _gesture.moveTo(firstLocation);
+    await _gesture.moveBy(Offset(0, 3));
+    await tester.pumpAndSettle();
+    await _gesture.moveBy(Offset(0, -1));
+    await tester.pumpAndSettle();
   });
 }

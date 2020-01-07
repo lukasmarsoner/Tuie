@@ -6,7 +6,7 @@ import 'test_utils.dart';
 import 'dart:async';
 
 EventRegistry _registry = new EventRegistry();
-IconData acUnit = Icons.ac_unit;
+Image campingTent = Image.asset('assets/icons/event_types/camping-tent.png');
 
 void main() {
   test('Event-Class', () async {
@@ -31,8 +31,8 @@ void main() {
     _event.due = _newDueDate;
     expect(_event.due, _newDueDate);
 
-    _event.icon = acUnit;
-    expect(_event.icon, acUnit);
+    _event.icon = campingTent;
+    expect(_event.icon, campingTent);
 
     //Get completion percentage
     _event.due = DateTime.now();
@@ -80,7 +80,7 @@ void main() {
     _registry.newEventDueDate(iEvent: 0, newDueDate: _dueDate);
     _registry.newEventName(iEvent: 0, newName: 'Test');
     _registry.newEventDuration(iEvent: 0, newDuration: Duration(days: 1));
-    _registry.newEventIcon(iEvent: 0, newIcon: acUnit);
+    _registry.newEventIcon(iEvent: 0, newIcon: campingTent);
 
     nEvents = _registry.nEvents;
     expect(_registry.getEventCompletionStatus(nEvents-1), false);
@@ -91,7 +91,7 @@ void main() {
     expect(_registry.getEventCompletionDate(nEvents-1).hour, DateTime.now().hour);
     expect(_registry.getEventsSortedByCompletionDate(), [nEvents-2, nEvents-1]);
 
-    expect(_registry.getEventIcon(0), acUnit);
+    expect(_registry.getEventIcon(0), campingTent);
     expect(_registry.getEventDueDate(0), _dueDate);
     expect(_registry.getEventName(0), 'Test');
 

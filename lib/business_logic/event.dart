@@ -5,14 +5,14 @@ class Event{
   String _name;
   DateTime _due, _completionDate;
   Duration _duration;
-  IconData _icon;
+  Image _icon;
   int _completionProgress;
 
   //Setters with sanity-checks
   set name(String valIn) => (valIn != null && valIn.length != 0)?_name = valIn.trim():throw new Exception('Invalid name!');
   set due(DateTime valIn) => valIn != null?_due = valIn:throw new Exception('Invalid Date!');
   set completionDate(DateTime valIn) => valIn != null?_completionDate = valIn:throw new Exception('Invalid Date!');
-  set icon(IconData valIn) => valIn != null?_icon = valIn:throw new Exception('Invalid Icon!');
+  set icon(Image valIn) => valIn != null?_icon = valIn:throw new Exception('Invalid Icon!');
   //We only support events with durations of at least 15 minuts
   set duration(Duration valIn){
     if(valIn != null){

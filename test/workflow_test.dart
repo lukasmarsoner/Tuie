@@ -11,6 +11,15 @@ void main() {
     EventWorkflowHandler _workflowHandler = new EventWorkflowHandler(eventRegistry: _registry);
 
     _workflowHandler.registerEvent(0);
+
+
+    DateTime _now = DateTime.now();
+    _now = _now.add(Duration(hours: 2));
+    BottomMenuState _bottomMenuState = new BottomMenuState(name: 'Test Name', dueDate: _now, duration: Duration(seconds: 10));
+
+    expect(_bottomMenuState.name, 'Test Name');
+    expect(_bottomMenuState.dueDate, _now);
+    expect(_bottomMenuState.duration, Duration(seconds: 10));
     
   });
 }

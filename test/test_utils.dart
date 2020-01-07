@@ -6,7 +6,7 @@ Map<String,dynamic> testIO = {
   'name': 'Test Name',
   'due': new DateTime.now().add(new Duration(hours: 20)),
   'duration': new Duration(minutes: 30),
-  'icon': Icons.account_box,
+  'icon': Image.asset('assets/icons/event_types/camping-tent.png'),
 };
 
 Event getTestEvent({String name, DateTime due, Duration duration, IconData icon}){

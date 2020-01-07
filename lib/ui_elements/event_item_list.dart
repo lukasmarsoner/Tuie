@@ -46,12 +46,12 @@ class OpenEventListItem extends EventListItem{
                   ?eventRegistry.setEventToCompleted(iEvent: iEvent)
                   :eventRegistry.deleteEvent(iEvent);
                 },
-              child: Container(
-                alignment: Alignment.center,
-                child: ListTile(
-                  leading: Icon(eventRegistry.getEventIcon(iEvent), size: _widgetHeigt / 3),
-                  title: Text(eventRegistry.getEventName(iEvent))
-                )
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Container(child: eventRegistry.getEventIcon(iEvent), height: _widgetHeigt / 3, width: _widgetHeigt / 3),
+                  Text(eventRegistry.getEventName(iEvent))
+                ]
               ),
               background: Container(
                 decoration: BoxDecoration(
@@ -95,19 +95,13 @@ class ClosedEventListItem extends EventListItem{
         key: Key(iEvent.toString()),
         width: MediaQuery.of(context).size.width,
         height: _widgetHeigt,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-          ),
-            alignment: Alignment.center,
-            child: Container(
-                alignment: Alignment.center,
-                child: ListTile(
-                  leading: Icon(eventRegistry.getEventIcon(iEvent), size: _widgetHeigt / 3),
-                  title: Text(eventRegistry.getEventName(iEvent))
-                )
-              ),
-            )
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Container(child: eventRegistry.getEventIcon(iEvent), height: _widgetHeigt / 3, width: _widgetHeigt / 3),
+            Text(eventRegistry.getEventName(iEvent))
+          ]
+        ),
         ),
     );
   }
