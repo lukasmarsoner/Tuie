@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/github/lukasmarsoner/Tuie/badge.svg?branch=master)](https://coveralls.io/github/lukasmarsoner/Tuie?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/lukasmarsoner/Tuie/badge.svg)](https://coveralls.io/github/lukasmarsoner/Tuie)
 # Tuie
 
 A small Flutter app to keep track of open tasks.
