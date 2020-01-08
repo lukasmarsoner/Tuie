@@ -12,5 +12,5 @@ The pictures in this app afre taken from:
     - Winter: Photo by [Justin Kauffman](https://unsplash.com/@justindkauffman) on [Unsplash](https://unsplash.com/)
 
 - Icons:
-    - Checkmark / Bin: Icon made by [Smashicons](https://www.flaticon.com/authors/smashicons) perfect from www.flaticon.com
-    - All other icons: Icon made by [Freepic](https://www.flaticon.com/authors/freepik) perfect from www.flaticon.com
+    - Checkmark / Bin: Icon made by [Smashicons](https://www.flaticon.com/authors/smashicons) from www.flaticon.com
+    - All other icons: Icon made by [Freepic](https://www.flaticon.com/authors/freepik) from www.flaticon.com
